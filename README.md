@@ -1,5 +1,5 @@
 # SnafflerRedEye
-Forget to run Snaffler with output flags and trying to parse it? You could run it again with the `-t` flag to get TSV output - or, run the output through this tool to parse it into CSV/JSON format. Even spits out some stats if you're into that sorta thing.
+Forgot to run Snaffler with output flags and trying to parse it? You could run it again with the `-t` flag to get TSV output - or, run the output through this tool to parse it into CSV/JSON format. Even spits out some stats if you're into that sorta thing.
 
 ```
 SnafflerEyedrops.py -h
