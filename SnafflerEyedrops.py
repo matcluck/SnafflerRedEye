@@ -2,7 +2,6 @@ import re
 import argparse
 import csv
 import json
-import xlsxwriter
 from collections import Counter
 
 
@@ -187,6 +186,7 @@ def main():
         write2JSON(sorted_snaffles, args.json)
 
     if (args.xlsx):
+        import xlsxwriter
         write2XLSX(sorted_snaffles, args.xlsx)
 
 if __name__ == "__main__":

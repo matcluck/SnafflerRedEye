@@ -3,7 +3,7 @@ Forgot to run Snaffler with output flags and trying to parse it? You could run i
 
 ```
 SnafflerEyedrops.py -h
-usage: SnafflerEyedrops.py [-h] -p PATH [-s] [-oC CSV] [-oJ JSON]
+usage: SnafflerEyedrops.py [-h] -p PATH [-s] [-oC CSV] [-oJ JSON] [-oX XLSX]
 
 options:
   -h, --help            show this help message and exit
@@ -12,4 +12,11 @@ options:
   -oC CSV, --csv CSV    Output csv path
   -oJ JSON, --json JSON
                         Output json path
+  -oX XLSX, --xlsx XLSX
+                        Output xlsx path
+```
+# XLSX Exporting
+You'll need the Python xlsxwriter library if you wish to export to xlsx. To install this, use pip3:
+```
+pip install -r requirements.txt
 ```
