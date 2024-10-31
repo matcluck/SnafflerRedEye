@@ -27,7 +27,7 @@ class Snaffle:
 
 def lossParse(snafflerRow):
     pattern = re.compile (
-        r'^\S+ \S+ \S+ \[File\]'
+        r'^\[.*\] \S+ \S+ \[File\]'
         r' '
         r'\{(?P<triageColour>.*)\}'
         r'\<(?P<matchReason>.*)\>'
