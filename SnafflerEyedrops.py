@@ -2,6 +2,7 @@ import re
 import argparse
 import csv
 import json
+import xlsxwriter
 from collections import Counter
 
 
@@ -63,12 +64,86 @@ def write2JSON(snaffles, outputPath):
     with open(outputPath, mode='w', newline='') as jsonFile:
         json.dump(snaffles, jsonFile, default=lambda o: o.__json__(), indent=4)
 
+def write2XLSX(snaffles, outputPath):
+    print("Writing snaffles to %s" % outputPath)
+    
+    fields = [
+        {'label': 'Triage Colour', 'width': 15},
+        {'label': 'Match Reason', 'width': 40},
+        {'label': 'File Path', 'width': 40},
+        {'label': 'Content', 'width':40}
+        ]
+    # setup workbook
+    workbook = xlsxwriter.Workbook(outputPath)
+    worksheet = workbook.add_worksheet()
+    
+    # write heading row
+    fieldnames = [label.get('label', None) for label in fields]
+    worksheet.write_row(0,0,fieldnames, workbook.add_format({
+        'bold': True,
+        'bg_color': '#000000',
+        'font_color': '#FFFFFF'
+    }))
+    dataRow = 1
+
+    # setup filter
+    worksheet.autofilter(0, 0, 0, len(fieldnames) - 1)
+
+    # set column width
+    for i in range(len(fields)):
+        worksheet.set_column(i,i,fields[i]['width'])
+
+    # setup conditional formatting for columns
+    formatRed = workbook.add_format({
+        'bg_color': '#FF0000',
+        'font_color': '#FFFFFF'
+
+    })
+    formatGreen = workbook.add_format({
+        'bg_color': '#00FF00',
+        'font_color': '#000000'
+
+    })
+    formatYellow = workbook.add_format({
+        'bg_color': '#FFFF00',
+        'font_color': '#000000'
+    })
+    formatBlack = workbook.add_format({
+        'bg_color': '#000000',
+        'font_color': '#FFFFFF'
+    })
+
+    formats = [
+        {'colour': 'red', 'format': formatRed},
+        {'colour': 'green', 'format': formatGreen},
+        {'colour': 'yellow', 'format': formatYellow},
+        {'colour': 'black', 'format': formatBlack}
+    ]
+
+    for format in formats:
+        worksheet.conditional_format('A1:A1048576', {
+            'type': 'cell',
+            'criteria': '=',
+            'value': '"%s"' % format['colour'],
+            'format': format['format']
+        })
+
+    # write data
+    for snaffle in snaffles:
+        worksheet.write_row(dataRow, 0, snaffle)
+        dataRow = dataRow + 1
+
+    workbook.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path', help='Path to snaffler output', required=True)
     parser.add_argument('-s', '--stdout', action='store_true', help='Write to stdout')
     parser.add_argument('-oC', '--csv', help='Output csv path')
     parser.add_argument('-oJ', '--json', help='Output json path')
+    parser.add_argument('-oX', '--xlsx', help='Output xlsx path')
+
     args = parser.parse_args()
 
     snaffles = []
@@ -95,12 +170,24 @@ def main():
         print("%s: %s" % (key, value))
     
     print("")
+
+    def triageColourToInt(colour):
+        if (colour == 'Black') : return 0
+        if (colour == 'Red') : return 1
+        if (colour == 'Yellow') : return 2
+        if (colour == 'Green') : return 3
+        return -1      
+
+    sorted_snaffles = sorted(snaffles, key=lambda x: triageColourToInt(x.triageColour))
     
     if args.csv:
-        write2CSV(snaffles, args.csv)
+        write2CSV(sorted_snaffles, args.csv)
 
     if args.json:
-        write2JSON(snaffles, args.json)
+        write2JSON(sorted_snaffles, args.json)
+
+    if (args.xlsx):
+        write2XLSX(sorted_snaffles, args.xlsx)
 
 if __name__ == "__main__":
     main()
