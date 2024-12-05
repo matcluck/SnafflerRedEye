@@ -3,7 +3,7 @@ import argparse
 import csv
 import json
 from collections import Counter
-
+import xlsxwriter
 
 class Snaffle:
     def __init__(self, triageColour, matchReason, filepath, content):
