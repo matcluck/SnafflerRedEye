@@ -25,15 +25,34 @@ class Snaffle:
     def __iter__(self):
         return iter([self.triageColour, self.matchReason, self.filepath, self.content])
 
-def lossParse(snafflerRow):
-    pattern = re.compile (
-        r'^\[.*\] \S+ \S+ \[File\]'
+def lossParse(snafflerRow, tsv):
+    pattern = re.compile(
+        r'^\[.*\]\t\S+ \S+ \[File\]'
         r' '
         r'\{(?P<triageColour>.*?)\}'
         r'\<(?P<matchReason>.*)\>'
         r'\((?P<filepath>[^)]*?)\)'
         r'(?P<content>.*)'
     )
+
+    if (tsv):
+        pattern = re.compile (
+            r'^\[.*\]\t\S+ \S+\t\[File\]'
+            r'\t'
+            r'(?P<triageColour>.*?)'
+            r'\t'
+            r'(?P<matchReason>.*)'
+            r'\t\t\t'
+            r'.*'
+            r'\t'
+            r'.*'
+            r'\t'
+            r'.*'
+            r'\t'
+            r'(?P<filepath>[^)]*?)'
+            r'\t'
+            r'(?P<content>.*)'
+        )
 
     match = pattern.search(snafflerRow)
     # try parse with content
@@ -137,8 +156,9 @@ def write2XLSX(snaffles, outputPath):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--path', help='Path to snaffler output', required=True)
+    parser.add_argument('-p', '--path', help='Path to Snaffler output', required=True)
     parser.add_argument('-s', '--stdout', action='store_true', help='Write to stdout')
+    parser.add_argument('-y', '--tsv', action='store_true', help='Specify that the Snaffler output is TSV formatted')
     parser.add_argument('-oC', '--csv', help='Output csv path')
     parser.add_argument('-oJ', '--json', help='Output json path')
     parser.add_argument('-oX', '--xlsx', help='Output xlsx path')
@@ -150,7 +170,7 @@ def main():
     snafflerOutput = open(args.path, 'r', encoding='cp1252')
     for row in snafflerOutput:
         try:
-            snaffleRecord = lossParse(row.strip())
+            snaffleRecord = lossParse(row.strip(), args.tsv)
             #print(row)
             #print(snaffleRecord)
             #input()
