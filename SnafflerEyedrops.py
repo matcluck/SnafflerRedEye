@@ -6,11 +6,15 @@ from collections import Counter
 import xlsxwriter
 
 class Snaffle:
+    def replaceNewlines(self):
+        self.content = self.content.replace('\\r\\n', '\n').replace('\\r', '\n').replace('\\n', '\n')
+
     def __init__(self, triageColour, matchReason, filepath, content):
         self.triageColour = triageColour
         self.matchReason = matchReason
         self.filepath = filepath
         self.content = content
+        self.replaceNewlines()
     def __json__(self):
         return {
                 'triageColour': self.triageColour,
