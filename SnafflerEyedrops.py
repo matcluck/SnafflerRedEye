@@ -8,6 +8,11 @@ import xlsxwriter
 class Snaffle:
     def replaceNewlines(self):
         self.content = self.content.replace('\\r\\n', '\n').replace('\\r', '\n').replace('\\n', '\n')
+        if '\n' in self.content:
+            self.multiline = True
+
+    def replaceEscapedSpaces(self):
+        self.content = self.content.replace('\\ ', ' ')
 
     def __init__(self, triageColour, matchRule, readWrite, matchedRegex, size, lastModified, filePath, content):
         self.triageColour = triageColour
@@ -17,8 +22,10 @@ class Snaffle:
         self.size = size
         self.lastModified = lastModified
         self.filePath = filePath
-        self.content = content
+        self.content = content[1:] # remove leading space. Doing this via regex causes a parsing issue if no content is provided (e.g. when a match is based on extension)
+        self.multiline = False
         self.replaceNewlines()
+        self.replaceEscapedSpaces()
     def __json__(self):
         return {
                 'triageColour': self.triageColour,
@@ -43,10 +50,10 @@ def lossParse(snafflerRow, tsv):
         r'\|'
         r'(?P<readWrite>[^|]+?)'
         r'\|'
-        r'(?P<matchedRegex>.*?)(?=\|\d+(\.\d+)?[kmgtp]?B\|)'
+        r'(?P<matchedRegex>.*?)(?=\|\d+(\.\d+)?[kmgtp]?B\|\d\d\d\d\-\d\d-\d\d \d\d\:\d\d\:\d\dZ)'
         r'\|'
-         r'(?P<size>[^|]+?)'
-         r'\|'
+        r'(?P<size>[^|]+?)'
+        r'\|'
         r'(?P<lastModified>[^>]+?)'
         r'\>'
         r'\((?P<filePath>[^)]*?)\)'
@@ -87,6 +94,24 @@ def lossParse(snafflerRow, tsv):
             #print(e)
             return None
 
+def tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt):
+    text = snaffle.content
+    regex = snaffle.matchedRegex
+
+    tokens = []
+    last_index = 0
+    #print(f"regex: {regex}, text: {text}")
+    for match in re.finditer(regex, text):
+        #print(match)
+        start, end = match.span()
+        if start > last_index:
+            tokens.append({"text": text[last_index:start], "format": default_fmt})
+        tokens.append({"text": text[start:end], "format": highlight_fmt})
+        last_index = end
+    if last_index < len(text):
+        tokens.append({"text": text[last_index:], "format": default_fmt})
+    return tokens
+
 def write2CSV(snaffles, outputPath):
     print("Writing snaffles to %s" % outputPath)
     with open(outputPath, mode='w', newline='') as csvFile:
@@ -100,7 +125,7 @@ def write2JSON(snaffles, outputPath):
     with open(outputPath, mode='w', newline='') as jsonFile:
         json.dump(snaffles, jsonFile, default=lambda o: o.__json__(), indent=4)
 
-def write2XLSX(snaffles, outputPath):
+def write2XLSX(snaffles, outputPath, nohighlight):
     print("Writing snaffles to %s" % outputPath)
     
     fields = [
@@ -160,6 +185,9 @@ def write2XLSX(snaffles, outputPath):
         {'colour': 'black', 'format': formatBlack}
     ]
 
+    default_fmt = workbook.add_format({'font_color': 'black'})
+    highlight_fmt = workbook.add_format({'font_color': 'red', 'bold': True})
+
     for format in formats:
         worksheet.conditional_format('A1:A1048576', {
             'type': 'cell',
@@ -170,7 +198,29 @@ def write2XLSX(snaffles, outputPath):
 
     # write data
     for snaffle in snaffles:
+        #print("Processing " + snaffle.matchedRegex)
         worksheet.write_row(dataRow, 0, snaffle)
+        
+        if (not nohighlight):
+            tokens = tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt)
+
+            if len(tokens) > 1:
+                segments = []
+                segments.append('```\n') if snaffle.multiline else segments.append('`')
+
+                for token in tokens:
+                    segments.append(token["format"])
+                    segments.append(token["text"])
+
+                segments.append('\n```') if snaffle.multiline else segments.append('`')
+
+                #print("Writing rich string")
+                #print(segments)
+                #print([type(x).__name__ for x in segments])
+
+                cell = f"H{dataRow + 1}"
+                worksheet.write_rich_string(cell, *segments)
+
         dataRow = dataRow + 1
 
     workbook.close()
@@ -184,6 +234,7 @@ def main():
     parser.add_argument('-oC', '--csv', help='Output csv path')
     parser.add_argument('-oJ', '--json', help='Output json path')
     parser.add_argument('-oX', '--xlsx', help='Output xlsx path')
+    parser.add_argument('--no-highlight', action='store_true', help='Disable regex based auto highlighting')
 
     args = parser.parse_args()
 
@@ -229,7 +280,7 @@ def main():
 
     if (args.xlsx):
         import xlsxwriter
-        write2XLSX(sorted_snaffles, args.xlsx)
+        write2XLSX(sorted_snaffles, args.xlsx, args.no_highlight)
 
 if __name__ == "__main__":
     main()
