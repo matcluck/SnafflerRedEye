@@ -22,7 +22,7 @@ class Snaffle:
         self.size = size
         self.lastModified = lastModified
         self.filePath = filePath
-        self.content = content[1:] # remove leading space. Doing this via regex causes a parsing issue if no content is provided (e.g. when a match is based on extension)
+        self.content = content
         self.multiline = False
         self.replaceNewlines()
         self.replaceEscapedSpaces()
@@ -57,6 +57,7 @@ def lossParse(snafflerRow, tsv):
         r'(?P<lastModified>[^>]+?)'
         r'\>'
         r'\((?P<filePath>[^)]*?)\)'
+        #r' ' - Doing this via regex causes a parsing issue if no content is provided (e.g. when a match is based on extension). Handled when creating snaffleRecord
         r'(?P<content>.*)'
     )
 
@@ -64,17 +65,19 @@ def lossParse(snafflerRow, tsv):
         pattern = re.compile (
             r'^\[.*\]\t\S+ \S+\t\[File\]'
             r'\t'
-            r'(?P<triageColour>.*?)'
+            r'(?P<triageColour>[^\t]+?)'
             r'\t'
-            r'(?P<matchRule>.*)'
+            r'(?P<matchRule>[^\t]+?)'
+            r'\t'
+            r'(?P<readWrite>[^\t]+?)'
             r'\t\t\t'
-            r'.*'
+            r'(?P<matchedRegex>[^\t]+?)'
             r'\t'
-            r'.*'
+            r'(?P<size>[^\t]+?)'
             r'\t'
-            r'.*'
+            r'(?P<lastModified>[^\t]+?)'
             r'\t'
-            r'(?P<filePath>[^)]*?)'
+            r'(?P<filePath>[^\t]+?)'
             r'\t'
             r'(?P<content>.*)'
         )
@@ -82,17 +85,15 @@ def lossParse(snafflerRow, tsv):
     match = pattern.search(snafflerRow)
     # try parse with content
     try:
-        snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content'))
+        if(csv):
+            snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content')[1:])
+        if(tsv):
+            snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content'))
         return snaffleRecord
-    except AttributeError:
-        # try parse with no content
-        try:
-            snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('lastModified'), match.group('filePath'), match.group('content'))
-            return snaffleRecord
-        except Exception as e:
-            #print(snafflerRow)
-            #print(e)
-            return None
+    except Exception as e:
+        #print(snafflerRow)
+        #print(e)
+        return None
 
 def tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt):
     text = snaffle.content
