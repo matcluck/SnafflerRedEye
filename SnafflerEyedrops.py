@@ -30,12 +30,16 @@ class Snaffle:
         return {
                 'triageColour': self.triageColour,
                 'matchRule': self.matchRule,
-                'filepath': self.filepath,
+                'readWrite': self.readWrite,
+                'matchedRegex': self.matchedRegex,
+                'size': self.size,
+                'lastModified': self.lastModified,
+                'filePath': self.filePath,
                 'content': self.content
                 }
 
     def __str__(self):
-        return 'triageColour: %s\nmatchRule: %s\nfilepath: %s\ncontent: %s\n' % (self.triageColour, self.matchRule, self.filepath, self.content)
+        return 'triageColour: %s\nmatchRule: %s\nfilepath: %s\ncontent: %s\n' % (self.triageColour, self.matchRule, self.filePath, self.content)
 
     def __iter__(self):
         return iter([self.triageColour, self.matchRule, self.readWrite, self.matchedRegex, self.size, self.lastModified, self.filePath, self.content])
