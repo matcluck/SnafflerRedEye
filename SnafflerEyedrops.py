@@ -9,33 +9,47 @@ class Snaffle:
     def replaceNewlines(self):
         self.content = self.content.replace('\\r\\n', '\n').replace('\\r', '\n').replace('\\n', '\n')
 
-    def __init__(self, triageColour, matchReason, filepath, content):
+    def __init__(self, triageColour, matchRule, readWrite, matchedRegex, size, lastModified, filePath, content):
         self.triageColour = triageColour
-        self.matchReason = matchReason
-        self.filepath = filepath
+        self.matchRule = matchRule
+        self.readWrite = readWrite
+        self.matchedRegex = matchedRegex
+        self.size = size
+        self.lastModified = lastModified
+        self.filePath = filePath
         self.content = content
         self.replaceNewlines()
     def __json__(self):
         return {
                 'triageColour': self.triageColour,
-                'matchReason': self.matchReason,
+                'matchRule': self.matchRule,
                 'filepath': self.filepath,
                 'content': self.content
                 }
 
     def __str__(self):
-        return 'triageColour: %s\nmatchReason: %s\nfilepath: %s\ncontent: %s\n' % (self.triageColour, self.matchReason, self.filepath, self.content)
+        return 'triageColour: %s\nmatchRule: %s\nfilepath: %s\ncontent: %s\n' % (self.triageColour, self.matchRule, self.filepath, self.content)
 
     def __iter__(self):
-        return iter([self.triageColour, self.matchReason, self.filepath, self.content])
+        return iter([self.triageColour, self.matchRule, self.readWrite, self.matchedRegex, self.size, self.lastModified, self.filePath, self.content])
 
 def lossParse(snafflerRow, tsv):
     pattern = re.compile(
         r'^\[.*\] \S+ \S+ \[File\]'
         r' '
-        r'\{(?P<triageColour>.*?)\}'
-        r'\<(?P<matchReason>.*)\>'
-        r'\((?P<filepath>[^)]*?)\)'
+        r'\{(?P<triageColour>[^<]+?)\}'
+        r'\<'
+        r'(?P<matchRule>[^|]+?)'
+        r'\|'
+        r'(?P<readWrite>[^|]+?)'
+        r'\|'
+        r'(?P<matchedRegex>.*?)(?=\|\d+(\.\d+)?[kmgtp]?B\|)'
+        r'\|'
+         r'(?P<size>[^|]+?)'
+         r'\|'
+        r'(?P<lastModified>[^>]+?)'
+        r'\>'
+        r'\((?P<filePath>[^)]*?)\)'
         r'(?P<content>.*)'
     )
 
@@ -45,7 +59,7 @@ def lossParse(snafflerRow, tsv):
             r'\t'
             r'(?P<triageColour>.*?)'
             r'\t'
-            r'(?P<matchReason>.*)'
+            r'(?P<matchRule>.*)'
             r'\t\t\t'
             r'.*'
             r'\t'
@@ -53,7 +67,7 @@ def lossParse(snafflerRow, tsv):
             r'\t'
             r'.*'
             r'\t'
-            r'(?P<filepath>[^)]*?)'
+            r'(?P<filePath>[^)]*?)'
             r'\t'
             r'(?P<content>.*)'
         )
@@ -61,12 +75,12 @@ def lossParse(snafflerRow, tsv):
     match = pattern.search(snafflerRow)
     # try parse with content
     try:
-        snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchReason'), match.group('filepath'), match.group('content'))
+        snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content'))
         return snaffleRecord
     except AttributeError:
         # try parse with no content
         try:
-            snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchReason'), match.group('filepath'), "")
+            snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('lastModified'), match.group('filePath'), match.group('content'))
             return snaffleRecord
         except Exception as e:
             #print(snafflerRow)
@@ -76,7 +90,7 @@ def lossParse(snafflerRow, tsv):
 def write2CSV(snaffles, outputPath):
     print("Writing snaffles to %s" % outputPath)
     with open(outputPath, mode='w', newline='') as csvFile:
-        fieldnames = ['Triage Colour','Match Reason','File Path','Content']
+        fieldnames = ['Triage Colour','Match Rule','File Path','Content']
         writer = csv.writer(csvFile)
         writer.writerow(fieldnames)
         writer.writerows(snaffles)
@@ -90,10 +104,14 @@ def write2XLSX(snaffles, outputPath):
     print("Writing snaffles to %s" % outputPath)
     
     fields = [
-        {'label': 'Triage Colour', 'width': 15},
-        {'label': 'Match Reason', 'width': 40},
-        {'label': 'File Path', 'width': 40},
-        {'label': 'Content', 'width':40}
+            {'label': 'Triage Colour', 'width': 10},
+            {'label': 'Match Rule', 'width': 30},
+            {'label': 'Read/Write', 'width': 5},
+            {'label': 'Matched Regex', 'width': 30},
+            {'label': 'Size', 'width': 10},
+            {'label': 'Last Modified', 'width':20},
+            {'label': 'File Path', 'width': 40},
+            {'label': 'Content', 'width':40}
         ]
     # setup workbook
     workbook = xlsxwriter.Workbook(outputPath)
