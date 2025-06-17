@@ -16,7 +16,7 @@ class Snaffle:
 
     def replaceEqualsChars(self):
         self.content = self.content.replace('=', '\'=')
-        self.regex = self.regex.replace('=', '\'=')
+        self.matchedRegex = self.matchedRegex.replace('=', '\'=')
 
     def __init__(self, triageColour, matchRule, readWrite, matchedRegex, size, lastModified, filePath, content):
         self.triageColour = triageColour
