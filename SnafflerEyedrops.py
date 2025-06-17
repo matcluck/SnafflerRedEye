@@ -7,7 +7,7 @@ import xlsxwriter
 
 class Snaffle:
     def replaceNewlines(self):
-        self.content = self.content.replace('\\r\\n', '\n').replace('\\r', '\n').replace('\\n', '\n')
+        self.content = self.content.replace('\\r\\n', '\n')
         if '\n' in self.content:
             self.multiline = True
 
