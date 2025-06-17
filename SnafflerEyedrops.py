@@ -145,7 +145,7 @@ def write2XLSX(snaffles, outputPath, nohighlight):
             {'label': 'Size', 'width': 10},
             {'label': 'Last Modified', 'width':20},
             {'label': 'File Path', 'width': 40},
-            {'label': 'Content', 'width':40}
+            {'label': 'Content', 'width':60}
         ]
     # setup workbook
     workbook = xlsxwriter.Workbook(outputPath)
@@ -196,6 +196,7 @@ def write2XLSX(snaffles, outputPath, nohighlight):
 
     default_fmt = workbook.add_format({'font_color': 'black'})
     highlight_fmt = workbook.add_format({'font_color': 'red', 'bold': True})
+    wrap_format = workbook.add_format({'text_wrap': True})
 
     for format in formats:
         worksheet.conditional_format('A1:A1048576', {
@@ -232,6 +233,8 @@ def write2XLSX(snaffles, outputPath, nohighlight):
                 worksheet.write_rich_string(cell, *segments)
 
         dataRow = dataRow + 1
+
+    worksheet.set_column('H:H', 60, wrap_format)
 
     workbook.close()
 
