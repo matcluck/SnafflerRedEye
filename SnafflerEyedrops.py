@@ -14,6 +14,10 @@ class Snaffle:
     def replaceEscapedSpaces(self):
         self.content = self.content.replace('\\ ', ' ')
 
+    def replaceEqualsChars(self):
+        self.content = self.content.replace('=', '\'=')
+        self.regex = self.regex.replace('=', '\'=')
+
     def __init__(self, triageColour, matchRule, readWrite, matchedRegex, size, lastModified, filePath, content):
         self.triageColour = triageColour
         self.matchRule = matchRule
@@ -204,6 +208,7 @@ def write2XLSX(snaffles, outputPath, nohighlight):
     # write data
     for snaffle in snaffles:
         #print("Processing " + snaffle.matchedRegex)
+        snaffle.replaceEqualsChars() # replace = with '= for .xlsx output
         worksheet.write_row(dataRow, 0, snaffle)
         
         if (not nohighlight):
