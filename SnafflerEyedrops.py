@@ -98,9 +98,8 @@ def lossParse(snafflerRow, tsv):
         if(tsv):
             snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content'))
         return snaffleRecord
-    except Exception as e:
+    except Exception:
         #print(snafflerRow)
-        #print(e)
         return None
 
 def tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt):
@@ -269,7 +268,7 @@ def main():
             #print(row)
             #print(snaffleRecord)
             #input()
-            if (snaffleRecord != None):
+            if snaffleRecord is not None:
                 snaffles.append(snaffleRecord)
                 print(snaffleRecord) if args.stdout else ""
         except Exception as e:
@@ -286,10 +285,14 @@ def main():
     print("")
 
     def triageColourToInt(colour):
-        if (colour == 'Black') : return 0
-        if (colour == 'Red') : return 1
-        if (colour == 'Yellow') : return 2
-        if (colour == 'Green') : return 3
+        if colour == 'Black':
+            return 0
+        if colour == 'Red':
+            return 1
+        if colour == 'Yellow':
+            return 2
+        if colour == 'Green':
+            return 3
         return -1
 
     sorted_snaffles = sorted(snaffles, key=lambda x: triageColourToInt(x.triageColour))
@@ -300,8 +303,7 @@ def main():
     if args.json:
         write2JSON(sorted_snaffles, args.json)
 
-    if (args.xlsx):
-        import xlsxwriter
+    if args.xlsx:
         write2XLSX(sorted_snaffles, args.xlsx, args.no_highlight)
 
 if __name__ == "__main__":
