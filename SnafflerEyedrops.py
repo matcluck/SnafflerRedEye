@@ -93,7 +93,7 @@ def lossParse(snafflerRow, tsv):
     match = pattern.search(snafflerRow)
     # try parse with content
     try:
-        if(csv):
+        if(not tsv):
             snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content')[1:])
         if(tsv):
             snaffleRecord = Snaffle(match.group('triageColour'), match.group('matchRule'), match.group('readWrite'), match.group('matchedRegex'), match.group('size'), match.group('lastModified'), match.group('filePath'), match.group('content'))
@@ -110,7 +110,13 @@ def tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt):
     tokens = []
     last_index = 0
     #print(f"regex: {regex}, text: {text}")
-    for match in re.finditer(regex, text):
+    try:
+        # regex matches should be case insensitive (like Snaffler)
+        matches = list(re.finditer(regex, text, re.IGNORECASE))
+    except re.error:
+        return tokens
+
+    for match in matches:
         #print(match)
         start, end = match.span()
         if start > last_index:
@@ -136,7 +142,7 @@ def write2JSON(snaffles, outputPath):
 
 def write2XLSX(snaffles, outputPath, nohighlight):
     print("Writing snaffles to %s" % outputPath)
-    
+
     fields = [
             {'label': 'Triage Colour', 'width': 10},
             {'label': 'Match Rule', 'width': 30},
@@ -150,7 +156,7 @@ def write2XLSX(snaffles, outputPath, nohighlight):
     # setup workbook
     workbook = xlsxwriter.Workbook(outputPath)
     worksheet = workbook.add_worksheet()
-    
+
     # write heading row
     fieldnames = [label.get('label', None) for label in fields]
     worksheet.write_row(0,0,fieldnames, workbook.add_format({
@@ -209,12 +215,15 @@ def write2XLSX(snaffles, outputPath, nohighlight):
     # write data
     for snaffle in snaffles:
         #print("Processing " + snaffle.matchedRegex)
-        snaffle.replaceEqualsChars() # replace = with '= for .xlsx output
-        worksheet.write_row(dataRow, 0, snaffle)
-        
+
+        # this must occur before replaceEqualsChars to avoid corrupting the regex match
         if (not nohighlight):
             tokens = tokeniseContent(snaffle, workbook, default_fmt, highlight_fmt)
 
+        snaffle.replaceEqualsChars() # replace = with '= for .xlsx output
+        worksheet.write_row(dataRow, 0, snaffle)
+
+        if (not nohighlight):
             if len(tokens) > 1:
                 segments = []
                 segments.append('```\n') if snaffle.multiline else segments.append('`')
@@ -268,12 +277,12 @@ def main():
             print(row)
 
     print("Provided log file contained %d snaffles with the following triage counts:\n" % len(snaffles))
-    
+
     triageCounts = Counter(snaffle.triageColour for snaffle in snaffles)
 
     for key, value in triageCounts.items():
         print("%s: %s" % (key, value))
-    
+
     print("")
 
     def triageColourToInt(colour):
@@ -281,10 +290,10 @@ def main():
         if (colour == 'Red') : return 1
         if (colour == 'Yellow') : return 2
         if (colour == 'Green') : return 3
-        return -1      
+        return -1
 
     sorted_snaffles = sorted(snaffles, key=lambda x: triageColourToInt(x.triageColour))
-    
+
     if args.csv:
         write2CSV(sorted_snaffles, args.csv)
 
